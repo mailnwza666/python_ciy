@@ -1,0 +1,518 @@
+import os
+import sys
+import time
+
+flower_names = list(["Rose", "Tulip", "Sunflower", "Lily", "Orchid", "Hydrangea"])
+flower_prices = list([50.0, 80.0, 45.0, 90.0, 120.0, 150.0])
+flower_stocks = list([100, 50, 60, 40, 30, 25])
+flower_categories = list(["Classic", "Imported", "Local", "Premium", "Exotic", "Premium"])
+
+cart_items = list()
+cart_prices = list()
+sales_history = list()
+receipt_history = list()
+order_queue = list()
+customer_members = list(["Alice", "Bob", "Charlie"])
+member_points = list([100, 250, 50])
+
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def print_header(title):
+    print("\n" + "=" * 65)
+    print(f" {title.center(61)} ")
+    print("=" * 65)
+
+def print_divider():
+    print("-" * 65)
+
+def pause():
+    input("\nกด Enter เพื่อดำเนินการต่อ...")
+
+def display_catalog():
+    print_header("รายการดอกไม้ในร้าน (FLOWER CATALOG)")
+    total_types = len(flower_names)
+    if total_types == 0:
+        print(" [!] ขณะนี้ไม่มีรายการดอกไม้ในระบบ")
+        return
+    print(f"{'No.':<5}{'ชื่อดอกไม้':<18}{'หมวดหมู่':<12}{'ราคา (บาท)':<14}{'คงเหลือ':<8}")
+    print_divider()
+    for i in range(total_types):
+        name = flower_names[i]
+        cat = flower_categories[i]
+        price = flower_prices[i]
+        stock = flower_stocks[i]
+        print(f" {i + 1:<4} {name:<18} {cat:<12} {price:<13.2f} {stock:<8}")
+    print_divider()
+    print(f"รวมทั้งสิ้น: {total_types} ชนิด")
+
+def add_new_flower():
+    print_header("เพิ่มรายการดอกไม้ใหม่ (ADD NEW FLOWER)")
+    name = input("ป้อนชื่อดอกไม้: ").strip().title()
+    if name in flower_names:
+        print(" [!] มีดอกไม้นี้อยู่ในระบบแล้ว")
+        return
+    try:
+        category = input("ป้อนหมวดหมู่ (Classic/Imported/Local/Premium): ").strip().title()
+        price = float(input("ป้อนราคาต่อดอก (บาท): "))
+        stock = int(input("ป้อนจำนวนสต็อกเริ่มต้น: "))
+    except ValueError:
+        print(" [!] ข้อมูลตัวเลขไม่ถูกต้อง")
+        return
+    print("\nเลือกรูปแบบการจัดเก็บ:")
+    print("1. เพิ่มไว้ท้ายรายการปกติ (Append)")
+    print("2. แทรกเป็นสินค้าแนะนำอันดับแรก (Insert at Index 0)")
+    choice = input("เลือกตัวเลือก (1-2): ").strip()
+    if choice == "2":
+        flower_names.insert(0, name)
+        flower_categories.insert(0, category)
+        flower_prices.insert(0, price)
+        flower_stocks.insert(0, stock)
+        print(f" [✓] แทรก '{name}' เป็นสินค้าแนะนำรายการแรกเรียบร้อยแล้ว")
+    else:
+        flower_names.append(name)
+        flower_categories.append(category)
+        flower_prices.append(price)
+        flower_stocks.append(stock)
+        print(f" [✓] เพิ่ม '{name}' ลงในแคตตาล็อกเรียบร้อยแล้ว")
+
+def batch_add_flowers():
+    print_header("นำเข้าดอกไม้ชุดใหม่ (BATCH IMPORT)")
+    print("ป้อนชื่อดอกไม้ที่ต้องการเพิ่ม (เว้นวรรคแยกชื่อ เช่น Daisy Carnation Iris)")
+    raw_input = input("ชื่อดอกไม้: ").strip()
+    if not raw_input:
+        print(" [!] ไม่มีข้อมูลถูกป้อนเข้ามา")
+        return
+    input_names = raw_input.split()
+    new_names = []
+    new_cats = []
+    new_prices = []
+    new_stocks = []
+    for name in input_names:
+        clean_name = name.title()
+        if clean_name in flower_names or clean_name in new_names:
+            print(f" [-] ข้าม '{clean_name}' เนื่องจากมีในระบบแล้ว")
+            continue
+        try:
+            cat = input(f"หมวดหมู่สำหรับ '{clean_name}': ").strip().title()
+            price = float(input(f"ตั้งราคาสำหรับ '{clean_name}' (บาท): "))
+            stock = int(input(f"ตั้งสต็อกสำหรับ '{clean_name}': "))
+            new_names.append(clean_name)
+            new_cats.append(cat)
+            new_prices.append(price)
+            new_stocks.append(stock)
+        except ValueError:
+            print(f" [!] ข้อมูลไม่ถูกต้อง ข้ามการเพิ่ม '{clean_name}'")
+    if new_names:
+        flower_names.extend(new_names)
+        flower_categories.extend(new_cats)
+        flower_prices.extend(new_prices)
+        flower_stocks.extend(new_stocks)
+        print(f" [✓] นำเข้าดอกไม้ใหม่ {len(new_names)} รายการเรียบร้อยด้วย extend()")
+
+def update_flower_stock():
+    print_header("อัปเดตจำนวนสต็อกสินค้า (UPDATE STOCK)")
+    display_catalog()
+    if len(flower_names) == 0:
+        return
+    target = input("\nป้อนชื่อดอกไม้ที่ต้องการปรับสต็อก: ").strip().title()
+    if target in flower_names:
+        idx = flower_names.index(target)
+        try:
+            print(f"สต็อกปัจจุบันของ '{target}' คือ {flower_stocks[idx]} ดอก")
+            add_qty = int(input("ป้อนจำนวนที่ต้องการเพิ่ม (หรือติดลบเพื่อลด): "))
+            if flower_stocks[idx] + add_qty < 0:
+                print(" [!] ไม่สามารถปรับให้สต็อกติดลบได้")
+            else:
+                flower_stocks[idx] += add_qty
+                print(f" [✓] อัปเดตสต็อก '{target}' เป็น {flower_stocks[idx]} ดอกเรียบร้อย")
+        except ValueError:
+            print(" [!] กรุณากรอกตัวเลขจำนวนเต็ม")
+    else:
+        print(f" [!] ไม่พบดอกไม้ชื่อ '{target}' ในระบบ")
+
+def remove_flower_from_catalog():
+    print_header("ลบรายการดอกไม้อออกจากระบบ (DELETE FLOWER)")
+    display_catalog()
+    if len(flower_names) == 0:
+        return
+    print("\nเลือกวิธีลบ:")
+    print("1. ลบด้วยชื่อดอกไม้ (Remove by Name)")
+    print("2. ลบด้วยลำดับดรรชนี (Delete by Index)")
+    method = input("เลือกวิธี (1-2): ").strip()
+    if method == "1":
+        target = input("ป้อนชื่อดอกไม้ที่ต้องการลบ: ").strip().title()
+        if target in flower_names:
+            idx = flower_names.index(target)
+            flower_names.remove(target)
+            del flower_categories[idx]
+            del flower_prices[idx]
+            del flower_stocks[idx]
+            print(f" [✓] ลบ '{target}' ออกจากระบบเรียบร้อยแล้ว")
+        else:
+            print(f" [!] ไม่พบดอกไม้ชื่อ '{target}'")
+    elif method == "2":
+        try:
+            idx_input = int(input("ป้อนลำดับรายการที่ต้องการลบ: ")) - 1
+            if 0 <= idx_input < len(flower_names):
+                removed_name = flower_names[idx_input]
+                del flower_names[idx_input]
+                del flower_categories[idx_input]
+                del flower_prices[idx_input]
+                del flower_stocks[idx_input]
+                print(f" [✓] ลบรายการที่ {idx_input + 1} ({removed_name}) เรียบร้อยแล้ว")
+            else:
+                print(" [!] ลำดับไม่ถูกต้อง")
+        except ValueError:
+            print(" [!] กรุณากรอกตัวเลข")
+
+def clear_all_catalog():
+    print_header("ล้างข้อมูลแคตตาล็อกทั้งหมด (CLEAR CATALOG)")
+    confirm = input("⚠️ คำเตือน: คุณต้องการลบดอกไม้ทั้งหมดออกจากร้านหรือไม่? (CONFIRM/n): ").strip()
+    if confirm == "CONFIRM":
+        flower_names.clear()
+        flower_categories.clear()
+        flower_prices.clear()
+        flower_stocks.clear()
+        print(" [✓] ล้างแคตตาล็อกสินค้าทั้งหมดเรียบร้อยแล้ว")
+    else:
+        print(" [!] ยกเลิกการล้างข้อมูล")
+
+def sort_catalog():
+    print_header("จัดเรียงลำดับสินค้า (SORT CATALOG)")
+    print("1. เรียงตามชื่อ (A-Z)")
+    print("2. เรียงตามราคา (น้อยไปมาก)")
+    print("3. เรียงตามราคา (มากไปน้อย)")
+    print("4. เรียงตามจำนวนสต็อก (มากไปน้อย)")
+    print("5. กลับลำดับรายการปัจจุบัน (Reverse Current Order)")
+    choice = input("เลือกตัวเลือก (1-5): ").strip()
+    if choice == "5":
+        flower_names.reverse()
+        flower_categories.reverse()
+        flower_prices.reverse()
+        flower_stocks.reverse()
+        print(" [✓] กลับลำดับรายการสินค้าในระบบเรียบร้อยแล้ว")
+        return
+    combined = list(zip(flower_names, flower_categories, flower_prices, flower_stocks))
+    if choice == "1":
+        combined.sort(key=lambda x: x[0])
+        print(" [✓] จัดเรียงตามชื่อ A-Z เรียบร้อยแล้ว")
+    elif choice == "2":
+        combined.sort(key=lambda x: x[2])
+        print(" [✓] จัดเรียงตามราคา น้อยไปมาก เรียบร้อยแล้ว")
+    elif choice == "3":
+        combined.sort(key=lambda x: x[2], reverse=True)
+        print(" [✓] จัดเรียงตามราคา มากไปน้อย เรียบร้อยแล้ว")
+    elif choice == "4":
+        combined.sort(key=lambda x: x[3], reverse=True)
+        print(" [✓] จัดเรียงตามสต็อก มากไปน้อย เรียบร้อยแล้ว")
+    else:
+        print(" [!] ตัวเลือกไม่ถูกต้อง")
+        return
+    for i in range(len(combined)):
+        flower_names[i] = combined[i][0]
+        flower_categories[i] = combined[i][1]
+        flower_prices[i] = combined[i][2]
+        flower_stocks[i] = combined[i][3]
+
+def search_flower():
+    print_header("ค้นหาข้อมูลดอกไม้ (SEARCH FLOWER)")
+    keyword = input("ป้อนชื่อหรือคำค้นหา: ").strip().lower()
+    found = False
+    print(f"\n{'No.':<5}{'ชื่อดอกไม้':<18}{'หมวดหมู่':<12}{'ราคา (บาท)':<14}{'คงเหลือ':<8}")
+    print_divider()
+    for i in range(len(flower_names)):
+        if keyword in flower_names[i].lower() or keyword in flower_categories[i].lower():
+            idx = flower_names.index(flower_names[i])
+            print(f" {idx + 1:<4} {flower_names[i]:<18} {flower_categories[i]:<12} {flower_prices[i]:<13.2f} {flower_stocks[i]:<8}")
+            found = True
+    print_divider()
+    if not found:
+        print(" [!] ไม่พบข้อมูลที่ตรงกับการค้นหา")
+
+def add_to_cart():
+    display_catalog()
+    if len(flower_names) == 0:
+        return
+    print_header("เลือกซื้อดอกไม้ใส่ตะกร้า (ADD TO CART)")
+    target = input("ป้อนชื่อดอกไม้ที่ต้องการซื้อ: ").strip().title()
+    if target in flower_names:
+        idx = flower_names.index(target)
+        current_stock = flower_stocks[idx]
+        if current_stock > 0:
+            try:
+                qty = int(input(f"จำนวนที่ต้องการ (คงเหลือ {current_stock} ดอก): "))
+                if 0 < qty <= current_stock:
+                    for _ in range(qty):
+                        cart_items.append(flower_names[idx])
+                        cart_prices.append(flower_prices[idx])
+                    flower_stocks[idx] -= qty
+                    print(f" [✓] เพิ่ม '{target}' จำนวน {qty} ดอก ลงตะกร้าเรียบร้อย")
+                else:
+                    print(" [!] จำนวนสั่งซื้อไม่ถูกต้องหรือเกินสต็อกที่มี")
+            except ValueError:
+                print(" [!] กรุณากรอกตัวเลขจำนวนเต็ม")
+        else:
+            print(" [!] สินค้านี้หมดสต็อกแล้ว")
+    else:
+        print(f" [!] ไม่พบดอกไม้ชื่อ '{target}'")
+
+def view_cart():
+    print_header("ตะกร้าสินค้าของคุณ (YOUR SHOPPING CART)")
+    total_items = len(cart_items)
+    if total_items == 0:
+        print(" [!] ตะกร้าสินค้ายังว่างเปล่า")
+        return
+    unique_items = list(set(cart_items))
+    print(f"{'รายการดอกไม้':<22}{'ราคา/หน่วย':<14}{'จำนวน':<10}{'ราคารวม (บาท)':<15}")
+    print_divider()
+    for item in unique_items:
+        item_count = cart_items.count(item)
+        item_idx = flower_names.index(item)
+        unit_price = flower_prices[item_idx]
+        subtotal = unit_price * item_count
+        print(f" {item:<22} {unit_price:<13.2f} {item_count:<9} {subtotal:<15.2f}")
+    print_divider()
+    total_price = sum(cart_prices)
+    print(f" จำนวนสินค้าในตะกร้าทั้งสิ้น: {total_items} ชิ้น")
+    print(f" ยอดเงินรวมทั้งหมด: {total_price:,.2f} บาท")
+
+def modify_cart():
+    print_header("จัดการสินค้าในตะกร้า (MODIFY CART)")
+    view_cart()
+    if len(cart_items) == 0:
+        return
+    print("\nตัวเลือกการจัดการ:")
+    print("1. นำสินค้าออกทีละ 1 ดอก (Remove by Name)")
+    print("2. ยกเลิกสินค้ารายการล่าสุด (Pop Last Item)")
+    print("3. ล้างตะกร้าสินค้าทั้งหมด (Clear Cart)")
+    choice = input("เลือกตัวเลือก (1-3): ").strip()
+    if choice == "1":
+        target = input("ป้อนชื่อดอกไม้ที่ต้องการนำออก: ").strip().title()
+        if target in cart_items:
+            cart_items.remove(target)
+            target_price_idx = flower_names.index(target)
+            cart_prices.remove(flower_prices[target_price_idx])
+            stock_idx = flower_names.index(target)
+            flower_stocks[stock_idx] += 1
+            print(f" [✓] นำ '{target}' ออกจากตะกร้า 1 ดอกเรียบร้อย")
+        else:
+            print(f" [!] ไม่พบ '{target}' ในตะกร้า")
+    elif choice == "2":
+        popped_item = cart_items.pop()
+        popped_price = cart_prices.pop()
+        stock_idx = flower_names.index(popped_item)
+        flower_stocks[stock_idx] += 1
+        print(f" [✓] นำรายการล่าสุด '{popped_item}' (ราคา {popped_price:.2f} บาท) ออกจากตะกร้าเรียบร้อย")
+    elif choice == "3":
+        confirm = input("คุณแน่ใจหรือไม่ว่าต้องการล้างตะกร้าทั้งหมด? (y/n): ").strip().lower()
+        if confirm == 'y':
+            for item in cart_items:
+                stock_idx = flower_names.index(item)
+                flower_stocks[stock_idx] += 1
+            cart_items.clear()
+            cart_prices.clear()
+            print(" [✓] เคลียร์สินค้าในตะกร้าเรียบร้อยแล้ว")
+
+def checkout():
+    print_header("การชำระเงิน (CHECKOUT)")
+    if len(cart_items) == 0:
+        print(" [!] ไม่มีสินค้าในตะกร้า")
+        return
+    view_cart()
+    subtotal = sum(cart_prices)
+    discount = 0.0
+    print("\nระบบสมาชิก:")
+    is_member = input("คุณเป็นสมาชิกหรือไม่? (y/n): ").strip().lower()
+    member_name = ""
+    if is_member == 'y':
+        member_name = input("ป้อนชื่อสมาชิก: ").strip().title()
+        if member_name in customer_members:
+            m_idx = customer_members.index(member_name)
+            print(f" [✓] สวัสดีสมาชิกคุณ {member_name} (คะแนนสะสม: {member_points[m_idx]} แต้ม)")
+            discount = subtotal * 0.10
+            print(f" [✓] รับส่วนลดสมาชิก 10%: -{discount:,.2f} บาท")
+            earned_points = int(subtotal / 100)
+            member_points[m_idx] += earned_points
+            print(f" [✓] ได้รับแต้มสะสมเพิ่ม: +{earned_points} แต้ม")
+        else:
+            print(" [!] ไม่พบชื่อสมาชิกนี้ ได้รับอัตราปกติ")
+    final_total = subtotal - discount
+    print(f"\n ยอดชำระสุทธิสุทธิ: {final_total:,.2f} บาท")
+    try:
+        cash = float(input("รับเงินมาจากลูกค้า (บาท): "))
+        if cash >= final_total:
+            change = cash - final_total
+            print(f" เงินทอน: {change:,.2f} บาท")
+            sales_history.extend(cart_items)
+            receipt_history.append(final_total)
+            order_code = f"ORD-{int(time.time())}"
+            order_queue.append(order_code)
+            cart_items.clear()
+            cart_prices.clear()
+            print("\n [✓] ชำระเงินสำเร็จ และพิมพ์ใบเสร็จเรียบร้อย")
+            print(f" [i] รหัสคำสั่งซื้อจัดส่งของคุณคือ: {order_code}")
+        else:
+            print(" [!] จำนวนเงินไม่พอสำหรับการชำระ")
+    except ValueError:
+        print(" [!] ข้อมูลจำนวนเงินไม่ถูกต้อง")
+
+def process_order_queue():
+    print_header("ระบบคิวการจัดส่งสินค้า (DELIVERY QUEUE)")
+    q_len = len(order_queue)
+    print(f"จำนวนออเดอร์ค้างจัดส่งปัจจุบัน: {q_len} คิว")
+    if q_len == 0:
+        return
+    print("รายการคิวในระบบ:", order_queue)
+    print("\n1. จัดส่งออเดอร์แรกสุดตามคิว (Pop First Queue - Index 0)")
+    print("2. จัดส่งออเดอร์ล่าสุดแบบด่วน (Pop Last Queue)")
+    choice = input("เลือกการทำงาน (1-2): ").strip()
+    if choice == "1":
+        processed = order_queue.pop(0)
+        print(f" [✓] ดำเนินการจัดส่งออเดอร์ {processed} (คิวแรกสุด) เรียบร้อย")
+    elif choice == "2":
+        processed = order_queue.pop()
+        print(f" [✓] ดำเนินการจัดส่งออเดอร์ {processed} (ด่วนที่สุด) เรียบร้อย")
+
+def member_management():
+    print_header("จัดการระบบสมาชิก (MEMBER MANAGEMENT)")
+    print(f"จำนวนสมาชิกทั้งหมด: {len(customer_members)} คน\n")
+    print(f"{'No.':<5}{'ชื่อสมาชิก':<25}{'คะแนนสะสม (แต้ม)':<15}")
+    print_divider()
+    for i in range(len(customer_members)):
+        print(f" {i + 1:<4} {customer_members[i]:<25} {member_points[i]:<15}")
+    print_divider()
+    print("\n1. สมัครสมาชิกใหม่ (Add Member)")
+    print("2. ลบสิทธิ์สมาชิก (Remove Member)")
+    choice = input("เลือกตัวเลือก (1-2 หรือ Enter เพื่อข้าม): ").strip()
+    if choice == "1":
+        new_name = input("ป้อนชื่อสมาชิกใหม่: ").strip().title()
+        if new_name in customer_members:
+            print(" [!] ชื่อสมาชิกนี้มีอยู่แล้ว")
+        else:
+            customer_members.append(new_name)
+            member_points.append(0)
+            print(f" [✓] เพิ่มสมาชิก '{new_name}' เรียบร้อยแล้ว")
+    elif choice == "2":
+        del_name = input("ป้อนชื่อสมาชิกที่ต้องการลบ: ").strip().title()
+        if del_name in customer_members:
+            m_idx = customer_members.index(del_name)
+            customer_members.remove(del_name)
+            del member_points[m_idx]
+            print(f" [✓] ลบสมาชิก '{del_name}' ออกจากระบบเรียบร้อย")
+        else:
+            print(" [!] ไม่พบชื่อสมาชิกนี้")
+
+def sales_report():
+    print_header("รายงานสรุปยอดขาย (SALES REPORT)")
+    total_sales_count = len(sales_history)
+    total_revenue = sum(receipt_history)
+    print(f" จำนวนดอกไม้ที่ขายได้ทั้งหมด: {total_sales_count} ดอก")
+    print(f" จำนวนใบเสร็จการชำระเงิน: {len(receipt_history)} ใบ")
+    print(f" รายได้รวมทั้งหมดสุทธิ: {total_revenue:,.2f} บาท")
+    print_divider()
+    if total_sales_count > 0:
+        print(f"{'รายการดอกไม้':<22}{'จำนวนที่ขายได้ (ดอก)':<20}")
+        print_divider()
+        unique_sales = list(set(sales_history))
+        for item in unique_sales:
+            count_sold = sales_history.count(item)
+            print(f" {item:<22} {count_sold:<20}")
+        print_divider()
+
+def system_analytics():
+    print_header("วิเคราะห์ข้อมูลระบบ (SYSTEM ANALYTICS)")
+    if len(flower_prices) == 0:
+        print(" [!] ไม่มีข้อมูลสำหรับวิเคราะห์")
+        return
+    max_price = max(flower_prices)
+    min_price = min(flower_prices)
+    avg_price = sum(flower_prices) / len(flower_prices)
+    max_p_idx = flower_prices.index(max_price)
+    min_p_idx = flower_prices.index(min_price)
+    print(f" ดอกไม้ที่มีราคาแพงที่สุด: {flower_names[max_p_idx]} ({max_price:.2f} บาท)")
+    print(f" ดอกไม้ที่มีราคาถูกที่สุด : {flower_names[min_p_idx]} ({min_price:.2f} บาท)")
+    print(f" ราคาเฉลี่ยของดอกไม้ในร้าน: {avg_price:.2f} บาท")
+    print(f" จำนวนสต็อกสินค้ารวมทั้งหมด: {sum(flower_stocks)} ดอก")
+
+def main_menu():
+    while True:
+        clear_screen()
+        print_header("FLOWER SHOP MANAGEMENT SYSTEM")
+        print(" [1] แสดงรายการดอกไม้ทั้งหมด (Display Catalog)")
+        print(" [2] ค้นหาข้อมูลดอกไม้ (Search Flower)")
+        print(" [3] เพิ่มดอกไม้ใหม่ลงระบบ (Add / Insert Flower)")
+        print(" [4] นำเข้าดอกไม้ชุดใหม่ (Batch Import - Extend)")
+        print(" [5] อัปเดตสต็อกสินค้า (Update Stock)")
+        print(" [6] ลบรายการดอกไม้ (Remove / Delete Flower)")
+        print(" [7] จัดเรียงสินค้า / กลับลำดับ (Sort / Reverse Catalog)")
+        print(" [8] เลือกซื้อดอกไม้ใส่ตะกร้า (Add to Cart)")
+        print(" [9] ตรวจสอบตะกร้าสินค้า (View Cart)")
+        print(" [10] จัดการสินค้าในตะกร้า (Modify / Pop / Clear Cart)")
+        print(" [11] ชำระเงินคำสั่งซื้อ (Checkout)")
+        print(" [12] จัดการคิวจัดส่งสินค้า (Delivery Queue)")
+        print(" [13] ระบบจัดการสมาชิก (Member Management)")
+        print(" [14] รายงานสรุปยอดขาย (Sales Report)")
+        print(" [15] สถิติและวิเคราะห์ระบบ (System Analytics)")
+        print(" [16] ล้างข้อมูลแคตตาล็อกทั้งหมด (Clear Catalog)")
+        print(" [0] ออกจากโปรแกรม (Exit System)")
+        print_divider()
+        choice = input("กรุณาเลือกเมนูทำรายการ (0-16): ").strip()
+        if choice == "1":
+            display_catalog()
+            pause()
+        elif choice == "2":
+            search_flower()
+            pause()
+        elif choice == "3":
+            add_new_flower()
+            pause()
+        elif choice == "4":
+            batch_add_flowers()
+            pause()
+        elif choice == "5":
+            update_flower_stock()
+            pause()
+        elif choice == "6":
+            remove_flower_from_catalog()
+            pause()
+        elif choice == "7":
+            sort_catalog()
+            pause()
+        elif choice == "8":
+            add_to_cart()
+            pause()
+        elif choice == "9":
+            view_cart()
+            pause()
+        elif choice == "10":
+            modify_cart()
+            pause()
+        elif choice == "11":
+            checkout()
+            pause()
+        elif choice == "12":
+            process_order_queue()
+            pause()
+        elif choice == "13":
+            member_management()
+            pause()
+        elif choice == "14":
+            sales_report()
+            pause()
+        elif choice == "15":
+            system_analytics()
+            pause()
+        elif choice == "16":
+            clear_all_catalog()
+            pause()
+        elif choice == "0":
+            print("\n [✓] ขอบคุณที่ใช้บริการระบบบริหารจัดการร้านขายดอกไม้!")
+            time.sleep(1)
+            sys.exit(0)
+        else:
+            print(" [!] คำสั่งไม่ถูกต้อง กรุณาเลือกใหม่อีกครั้ง")
+            time.sleep(1)
+
+if __name__ == "__main__":
+    main_menu()
