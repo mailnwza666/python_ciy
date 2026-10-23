@@ -1,0 +1,47 @@
+# import turtle
+# turtle.color('white')
+# turtle.pensize(3)
+# turtle.speed(10)
+# t = turtle
+# t.penup()
+# t.goto(-100,0)
+# t.pendown()
+# t.forward(200)
+# t.left(90)
+# t.forward(100)
+# t.left(90)
+# t.forward(200)
+# t.left(90)
+# t.forward(100)
+# t.left(90)
+# t.penup()
+# t.goto(-75,50)
+# t.pendown()
+# t.pensize(10)
+# t.write('cafe mai', font = (200))
+# import turtle
+# turtle.color('red')
+# turtle.pensize(5)
+# turtle.speed(10)
+# t = turtle
+
+# for i in range(5):
+#     t.forward(100)
+#     t.right(144)
+
+# t.right(100)
+# t.forward(5)
+# turtle.circle(55,360)
+import turtle
+turtle.color('white')
+turtle.speed(50)
+t = turtle
+turtle.begin_fill()
+for i in range(24):
+    for x in range(4):
+        t.forward(30)
+        t.right(90)
+    t.right(15)
+
+t.hideturtle()
+turtle.end_fill()
